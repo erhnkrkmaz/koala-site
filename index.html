@@ -40,6 +40,8 @@
     .email-inp::placeholder{color:rgba(255,255,255,.28)}
     .email-inp:focus{border-color:rgba(124,106,245,.55)}
     .submit-btn{background:#7C6AF5;border:none;color:#fff;font-size:15px;font-weight:600;padding:14px 24px;border-radius:13px;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;-webkit-appearance:none}
+
+    .launch-note{font-size:13px;color:rgba(255,255,255,.35);line-height:1.5;margin:-2px 0 12px;max-width:460px}
     .counter{font-size:13px;color:rgba(255,255,255,.28)}
     .counter strong{color:rgba(124,106,245,.8);font-weight:600}
     .form-message{font-size:13px;margin-top:10px;min-height:18px;color:rgba(255,255,255,.45)}
@@ -138,6 +140,10 @@
         <div class="form-row">
           <input class="email-inp" type="email" placeholder="your@email.com" id="hero-email" autocomplete="email"/>
           <button class="submit-btn" onclick="handleJoin()">Join waitlist</button>
+        </div>
+        <div class="launch-note">
+          🇺🇸 Launching first in the United States.<br>
+          Join the waitlist to get early access.
         </div>
         <div class="counter">Join <strong id="count-num">...</strong> people already on the list</div>
         <div class="form-message" id="form-message"></div>
