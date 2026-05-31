@@ -144,19 +144,19 @@
           </div>
           <div>
             <div class="success-title">You're on the list!</div>
-            <div class="success-sub">Position #<span id="position">2848</span> — invite friends to move up</div>
+            <div class="success-sub">Position #<span id="position">2848</span> — share with friends</div>
           </div>
         </div>
         <div class="invite-box">
-          <div class="invite-label">MOVE UP THE LIST</div>
-          <div class="invite-title">Invite 3 friends, skip the line</div>
-          <div class="invite-sub">Each friend who joins moves you up. 3 invites = priority access.</div>
+          <div class="invite-label">SPREAD THE WORD</div>
+          <div class="invite-title">Share with friends, help us grow</div>
+          <div class="invite-sub">Share your link and help Koala grow. Every person counts.</div>
           <div class="progress-row">
             <div class="progress-dot" id="dot-1"></div>
             <div class="progress-dot" id="dot-2"></div>
             <div class="progress-dot" id="dot-3"></div>
           </div>
-          <div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:14px">0 of 3 friends invited</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:14px">Share with your friends</div>
           <div class="link-row">
             <div class="link-box" id="ref-link" onclick="copyLink()">koala.app/join?ref=...</div>
             <button class="copy-btn" id="copy-btn" onclick="copyLink()">Copy</button>
@@ -262,8 +262,8 @@
     document.getElementById('position').textContent = count.toLocaleString();
 
     const code = generateCode(email);
-    refLink = 'https://heykoala.app/join?ref=' + code;
-    document.getElementById('ref-link').textContent = 'heykoala.app/join?ref=' + code;
+    refLink = 'https://heykoala.app?ref=' + code;
+    document.getElementById('ref-link').textContent = 'heykoala.app?ref=' + code;
 
     document.getElementById('form-section').style.display = 'none';
     document.getElementById('success-block').style.display = 'block';
