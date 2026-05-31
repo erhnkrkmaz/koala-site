@@ -240,9 +240,16 @@
     if (positionEl) positionEl.textContent = count.toLocaleString();
   }
 
-  async function loadWaitlistCount() {
+  async function loadWaitlistCount(fallbackValue = BASE_COUNT) {
     try {
-      const res = await fetch(WAITLIST_COUNT_URL, { method: 'GET' });
+      const res = await fetch(WAITLIST_COUNT_URL, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
       if (!res.ok) throw new Error('Count endpoint failed: ' + res.status);
 
       const data = await res.json();
@@ -255,8 +262,8 @@
       console.error('Waitlist count load error:', e);
     }
 
-    updateDisplayedCount(BASE_COUNT);
-    return BASE_COUNT;
+    updateDisplayedCount(fallbackValue);
+    return fallbackValue;
   }
 
   updateDisplayedCount(BASE_COUNT);
@@ -371,7 +378,7 @@
       }
 
       await notifyFormspree(email, code);
-      const latestCount = await loadWaitlistCount();
+      const latestCount = await loadWaitlistCount(count + 1);
       showSuccess(email, code, latestCount);
     } catch(e) {
       setMessage('Connection error. Please try again.', 'error');
