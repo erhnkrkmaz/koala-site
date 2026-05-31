@@ -149,7 +149,7 @@
           </div>
           <div>
             <div class="success-title">You're on the list!</div>
-            <div class="success-sub">Position #<span id="position">2848</span> — share with friends</div>
+            <div class="success-sub">Position #<span id="position">2845</span> — share with friends</div>
           </div>
         </div>
         <div class="invite-box">
@@ -215,8 +215,8 @@
   let refLink = '';
   const SUPABASE_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbHBjb3poemhha3N5ZmtxYmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODU3MjcsImV4cCI6MjA5NTc2MTcyN30.Qbj9rAjB2U37JCT37HKfWCMwRxykqvWjH4plExCaEL4';
-  const WAITLIST_COUNT_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/waitlist-count';
   const BASE_COUNT = 2845;
+  const WAITLIST_COUNT_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/waitlist-count';
   let count = BASE_COUNT;
 
   function setMessage(text, type = '') {
@@ -234,23 +234,29 @@
     const safeValue = Number.isFinite(Number(value)) ? Number(value) : BASE_COUNT;
     count = safeValue;
     const countEl = document.getElementById('count-num');
-    if (countEl) countEl.textContent = safeValue.toLocaleString();
+    if (countEl) countEl.textContent = count.toLocaleString();
+
+    const positionEl = document.getElementById('position');
+    if (positionEl) positionEl.textContent = count.toLocaleString();
   }
 
   async function loadWaitlistCount() {
     try {
-      const res = await fetch(WAITLIST_COUNT_URL, { method: 'POST' });
+      const res = await fetch(WAITLIST_COUNT_URL, { method: 'GET' });
       if (!res.ok) throw new Error('Count endpoint failed: ' + res.status);
+
       const data = await res.json();
-      if (data && typeof data.displayCount === 'number') {
-        updateDisplayedCount(data.displayCount);
-      } else {
-        updateDisplayedCount(BASE_COUNT);
+      const liveCount = Number(data.displayCount);
+      if (Number.isFinite(liveCount) && liveCount >= BASE_COUNT) {
+        updateDisplayedCount(liveCount);
+        return liveCount;
       }
     } catch (e) {
       console.error('Waitlist count load error:', e);
-      updateDisplayedCount(BASE_COUNT);
     }
+
+    updateDisplayedCount(BASE_COUNT);
+    return BASE_COUNT;
   }
 
   updateDisplayedCount(BASE_COUNT);
@@ -364,9 +370,9 @@
         return;
       }
 
-      await loadWaitlistCount();
       await notifyFormspree(email, code);
-      showSuccess(email, code, count);
+      const latestCount = await loadWaitlistCount();
+      showSuccess(email, code, latestCount);
     } catch(e) {
       setMessage('Connection error. Please try again.', 'error');
     } finally {
