@@ -214,7 +214,7 @@
 <script>
   let refLink = '';
   const SUPABASE_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_gGnCj-Y5CD_LByAxMtDPHw_STiWhreb';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbHBjb3poemhha3N5ZmtxYmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODU3MjcsImV4cCI6MjA5NTc2MTcyN30.Qbj9rAjB2U37JCT37HKfWCMwRxykqvWjH4plExCaEL4';
   const BASE_COUNT = 2845;
   let count = BASE_COUNT;
 
@@ -229,26 +229,8 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
-  // Load real count from Supabase
-  async function loadCount() {
-    try {
-      const res = await fetch(SUPABASE_URL + '/rest/v1/waitlist?select=id', {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Prefer': 'count=exact'
-        }
-      });
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        count = BASE_COUNT + data.length;
-        document.getElementById('count-num').textContent = count.toLocaleString();
-      }
-    } catch(e) {
-      document.getElementById('count-num').textContent = BASE_COUNT.toLocaleString();
-    }
-  }
-  loadCount();
+  // RLS production mode: no public SELECT policy, so we do not read the table count from the browser.
+  document.getElementById('count-num').textContent = BASE_COUNT.toLocaleString();
 
   // iMessage / Instagram / Facebook in-app browser detection
   function isInAppBrowser() {
@@ -333,7 +315,7 @@
           'apikey': SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
           'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'Prefer': 'return=minimal'
         },
         body: JSON.stringify({ email: email, ref_code: code })
       });
@@ -347,10 +329,13 @@
         let errorText = 'Something went wrong. Please try again.';
         try {
           const err = await res.json();
-          if (err && err.message && err.message.toLowerCase().includes('duplicate')) {
+          console.error('Supabase insert error:', err);
+          if (err && ((err.code === '23505') || (err.message && (err.message.toLowerCase().includes('duplicate') || err.message.toLowerCase().includes('unique'))))) {
             errorText = 'This email is already on the waitlist.';
           }
-        } catch(e) {}
+        } catch(e) {
+          console.error('Supabase insert failed with status:', res.status);
+        }
         setMessage(errorText, 'error');
         return;
       }
