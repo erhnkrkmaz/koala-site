@@ -164,6 +164,7 @@
           <div class="share-row">
             <button class="share-btn" onclick="shareTwitter()">Share on X</button>
             <button class="share-btn" onclick="shareWhatsApp()">WhatsApp</button>
+            <button class="share-btn" onclick="shareIMessage()">iMessage</button>
           </div>
         </div>
       </div>
@@ -248,13 +249,21 @@
       setTimeout(() => inp.style.borderColor = 'rgba(255,255,255,.14)', 2000);
       return;
     }
+
+    // Submit to Formspree
+    fetch('https://formspree.io/f/xnjryzvp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email: email, source: 'waitlist' })
+    }).catch(() => {}); // fail silently
+
     count++;
     document.getElementById('count-num').textContent = count.toLocaleString();
     document.getElementById('position').textContent = count.toLocaleString();
 
     const code = generateCode(email);
-    refLink = 'https://koala.app/join?ref=' + code;
-    document.getElementById('ref-link').textContent = 'koala.app/join?ref=' + code;
+    refLink = 'https://heykoala.app/join?ref=' + code;
+    document.getElementById('ref-link').textContent = 'heykoala.app/join?ref=' + code;
 
     document.getElementById('form-section').style.display = 'none';
     document.getElementById('success-block').style.display = 'block';
@@ -300,6 +309,11 @@
   function shareWhatsApp() {
     const text = encodeURIComponent('Join me on Koala — talk, vibe, vote. Get early access: ' + refLink);
     window.open('https://wa.me/?text=' + text, '_blank');
+  }
+
+  function shareIMessage() {
+    const text = encodeURIComponent('Join me on Koala — talk, vibe, vote with strangers. Get early access: ' + refLink);
+    window.location.href = 'sms:&body=' + text;
   }
 
   document.getElementById('hero-email').addEventListener('keydown', e => {
