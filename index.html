@@ -42,6 +42,10 @@
     .submit-btn{background:#7C6AF5;border:none;color:#fff;font-size:15px;font-weight:600;padding:14px 24px;border-radius:13px;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;-webkit-appearance:none}
     .counter{font-size:13px;color:rgba(255,255,255,.28)}
     .counter strong{color:rgba(124,106,245,.8);font-weight:600}
+    .form-message{font-size:13px;margin-top:10px;min-height:18px;color:rgba(255,255,255,.45)}
+    .form-message.error{color:#ff6b6b}
+    .form-message.info{color:rgba(124,106,245,.9)}
+    .submit-btn:disabled{opacity:.55;cursor:not-allowed}
 
     .success-block{display:none;max-width:460px}
     .success-top{display:flex;align-items:center;gap:10px;margin-bottom:20px}
@@ -135,6 +139,7 @@
           <button class="submit-btn" onclick="handleJoin()">Join waitlist</button>
         </div>
         <div class="counter">Join <strong id="count-num">2,847</strong> people already on the list</div>
+        <div class="form-message" id="form-message"></div>
       </div>
 
       <div class="success-block" id="success-block">
@@ -207,8 +212,43 @@
 </div>
 
 <script>
-  let count = 2847;
   let refLink = '';
+  const SUPABASE_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_gGnCj-Y5CD_LByAxMtDPHw_STiWhreb';
+  const BASE_COUNT = 2845;
+  let count = BASE_COUNT;
+
+  function setMessage(text, type = '') {
+    const msg = document.getElementById('form-message');
+    if (!msg) return;
+    msg.textContent = text || '';
+    msg.className = 'form-message' + (type ? ' ' + type : '');
+  }
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  // Load real count from Supabase
+  async function loadCount() {
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/waitlist?select=id', {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Prefer': 'count=exact'
+        }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        count = BASE_COUNT + data.length;
+        document.getElementById('count-num').textContent = count.toLocaleString();
+      }
+    } catch(e) {
+      document.getElementById('count-num').textContent = BASE_COUNT.toLocaleString();
+    }
+  }
+  loadCount();
 
   // iMessage / Instagram / Facebook in-app browser detection
   function isInAppBrowser() {
@@ -241,32 +281,89 @@
     return base + rand;
   }
 
-  function handleJoin() {
-    const inp = document.getElementById('hero-email');
-    const email = inp.value.trim();
-    if (!email || !email.includes('@') || !email.includes('.')) {
-      inp.style.borderColor = 'rgba(220,50,50,.5)';
-      setTimeout(() => inp.style.borderColor = 'rgba(255,255,255,.14)', 2000);
-      return;
+  async function notifyFormspree(email, code) {
+    try {
+      await fetch('https://formspree.io/f/xnjryzvp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ email: email, ref_code: code, source: 'waitlist' })
+      });
+    } catch(e) {
+      // Supabase is the source of truth. Formspree notification can fail silently.
     }
+  }
 
-    // Submit to Formspree
-    fetch('https://formspree.io/f/xnjryzvp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ email: email, source: 'waitlist' })
-    }).catch(() => {}); // fail silently
+  function showSuccess(email, code, positionCount) {
+    document.getElementById('count-num').textContent = positionCount.toLocaleString();
+    document.getElementById('position').textContent = positionCount.toLocaleString();
 
-    count++;
-    document.getElementById('count-num').textContent = count.toLocaleString();
-    document.getElementById('position').textContent = count.toLocaleString();
-
-    const code = generateCode(email);
     refLink = 'https://heykoala.app?ref=' + code;
     document.getElementById('ref-link').textContent = 'heykoala.app?ref=' + code;
 
     document.getElementById('form-section').style.display = 'none';
     document.getElementById('success-block').style.display = 'block';
+  }
+
+  async function handleJoin() {
+    const inp = document.getElementById('hero-email');
+    const btn = document.querySelector('.submit-btn');
+    const email = inp.value.trim().toLowerCase();
+
+    setMessage('');
+
+    if (!isValidEmail(email)) {
+      inp.style.borderColor = 'rgba(220,50,50,.5)';
+      setMessage('Please enter a valid email address.', 'error');
+      setTimeout(() => inp.style.borderColor = 'rgba(255,255,255,.14)', 2000);
+      return;
+    }
+
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = 'Joining...';
+    setMessage('Checking your email...', 'info');
+
+    const code = generateCode(email);
+
+    try {
+      // Supabase is the source of truth. Only new emails should continue to Formspree.
+      const res = await fetch(SUPABASE_URL + '/rest/v1/waitlist', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({ email: email, ref_code: code })
+      });
+
+      if (res.status === 409) {
+        setMessage('This email is already on the waitlist.', 'error');
+        return;
+      }
+
+      if (!res.ok) {
+        let errorText = 'Something went wrong. Please try again.';
+        try {
+          const err = await res.json();
+          if (err && err.message && err.message.toLowerCase().includes('duplicate')) {
+            errorText = 'This email is already on the waitlist.';
+          }
+        } catch(e) {}
+        setMessage(errorText, 'error');
+        return;
+      }
+
+      count++;
+      await notifyFormspree(email, code);
+      showSuccess(email, code, count);
+    } catch(e) {
+      setMessage('Connection error. Please try again.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
   }
 
   function copyLink() {
