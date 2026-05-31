@@ -217,7 +217,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbHBjb3poemhha3N5ZmtxYmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODU3MjcsImV4cCI6MjA5NTc2MTcyN30.Qbj9rAjB2U37JCT37HKfWCMwRxykqvWjH4plExCaEL4';
   const BASE_COUNT = 2845;
   const WAITLIST_COUNT_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/waitlist-count';
-  let count = BASE_COUNT;
+  let count = null;
 
   function setMessage(text, type = '') {
     const msg = document.getElementById('form-message');
@@ -231,16 +231,19 @@
   }
 
   function updateDisplayedCount(value) {
-    const safeValue = Number.isFinite(Number(value)) ? Number(value) : BASE_COUNT;
-    count = safeValue;
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || numericValue < BASE_COUNT) return;
+
+    count = numericValue;
+
     const countEl = document.getElementById('count-num');
-    if (countEl) countEl.textContent = count.toLocaleString();
+    if (countEl) countEl.textContent = numericValue.toLocaleString();
 
     const positionEl = document.getElementById('position');
-    if (positionEl) positionEl.textContent = count.toLocaleString();
+    if (positionEl) positionEl.textContent = numericValue.toLocaleString();
   }
 
-  async function loadWaitlistCount(fallbackValue = BASE_COUNT) {
+  async function loadWaitlistCount(fallbackValue = null) {
     try {
       const res = await fetch(WAITLIST_COUNT_URL, {
         method: 'GET',
@@ -248,7 +251,8 @@
           'apikey': SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
           'Content-Type': 'application/json'
-        }
+        },
+        cache: 'no-store'
       });
       if (!res.ok) throw new Error('Count endpoint failed: ' + res.status);
 
@@ -262,11 +266,17 @@
       console.error('Waitlist count load error:', e);
     }
 
-    updateDisplayedCount(fallbackValue);
-    return fallbackValue;
+    // Initial page load should stay as "..." if the count endpoint is slow or fails.
+    // After a successful signup, fallbackValue lets us show at least the next position.
+    if (Number.isFinite(Number(fallbackValue))) {
+      updateDisplayedCount(Number(fallbackValue));
+      return Number(fallbackValue);
+    }
+
+    return null;
   }
 
-  updateDisplayedCount(BASE_COUNT);
+  // Keep the initial HTML as "..." until the live count arrives.
   loadWaitlistCount();
 
   // iMessage / Instagram / Facebook in-app browser detection
@@ -378,8 +388,9 @@
       }
 
       await notifyFormspree(email, code);
-      const latestCount = await loadWaitlistCount(count + 1);
-      showSuccess(email, code, latestCount);
+      const fallbackPosition = Number.isFinite(Number(count)) ? Number(count) + 1 : BASE_COUNT + 1;
+      const latestCount = await loadWaitlistCount(fallbackPosition);
+      showSuccess(email, code, latestCount || fallbackPosition);
     } catch(e) {
       setMessage('Connection error. Please try again.', 'error');
     } finally {
