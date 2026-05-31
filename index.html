@@ -138,7 +138,7 @@
           <input class="email-inp" type="email" placeholder="your@email.com" id="hero-email" autocomplete="email"/>
           <button class="submit-btn" onclick="handleJoin()">Join waitlist</button>
         </div>
-        <div class="counter">Join <strong id="count-num">2,847</strong> people already on the list</div>
+        <div class="counter">Join <strong id="count-num">2,845</strong> people already on the list</div>
         <div class="form-message" id="form-message"></div>
       </div>
 
@@ -215,6 +215,7 @@
   let refLink = '';
   const SUPABASE_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbHBjb3poemhha3N5ZmtxYmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODU3MjcsImV4cCI6MjA5NTc2MTcyN30.Qbj9rAjB2U37JCT37HKfWCMwRxykqvWjH4plExCaEL4';
+  const WAITLIST_COUNT_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/waitlist-count';
   const BASE_COUNT = 2845;
   let count = BASE_COUNT;
 
@@ -229,8 +230,31 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
-  // RLS production mode: no public SELECT policy, so we do not read the table count from the browser.
-  document.getElementById('count-num').textContent = BASE_COUNT.toLocaleString();
+  function updateDisplayedCount(value) {
+    const safeValue = Number.isFinite(Number(value)) ? Number(value) : BASE_COUNT;
+    count = safeValue;
+    const countEl = document.getElementById('count-num');
+    if (countEl) countEl.textContent = safeValue.toLocaleString();
+  }
+
+  async function loadWaitlistCount() {
+    try {
+      const res = await fetch(WAITLIST_COUNT_URL, { method: 'POST' });
+      if (!res.ok) throw new Error('Count endpoint failed: ' + res.status);
+      const data = await res.json();
+      if (data && typeof data.displayCount === 'number') {
+        updateDisplayedCount(data.displayCount);
+      } else {
+        updateDisplayedCount(BASE_COUNT);
+      }
+    } catch (e) {
+      console.error('Waitlist count load error:', e);
+      updateDisplayedCount(BASE_COUNT);
+    }
+  }
+
+  updateDisplayedCount(BASE_COUNT);
+  loadWaitlistCount();
 
   // iMessage / Instagram / Facebook in-app browser detection
   function isInAppBrowser() {
@@ -340,7 +364,7 @@
         return;
       }
 
-      count++;
+      await loadWaitlistCount();
       await notifyFormspree(email, code);
       showSuccess(email, code, count);
     } catch(e) {
