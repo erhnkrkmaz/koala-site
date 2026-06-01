@@ -246,6 +246,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbHBjb3poemhha3N5ZmtxYmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODU3MjcsImV4cCI6MjA5NTc2MTcyN30.Qbj9rAjB2U37JCT37HKfWCMwRxykqvWjH4plExCaEL4';
   const BASE_COUNT = 2845;
   const WAITLIST_COUNT_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/waitlist-count';
+  const JOIN_WAITLIST_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/join-waitlist';
   let count = null;
 
   function trackEvent(eventName, params = {}) {
@@ -403,17 +404,24 @@
     const code = generateCode(email);
 
     try {
-      // Supabase is the source of truth. Only new emails should continue to Formspree.
-      const res = await fetch(SUPABASE_URL + '/rest/v1/waitlist', {
+      // Secure signup flow: the Edge Function verifies Turnstile server-side,
+      // then writes to Supabase using the service role key.
+      const res = await fetch(JOIN_WAITLIST_URL, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email: email, ref_code: code })
+        body: JSON.stringify({
+          email: email,
+          ref_code: code,
+          turnstileToken: turnstileToken
+        })
       });
+
+      let responseBody = {};
+      try { responseBody = await res.json(); } catch(e) {}
 
       if (res.status === 409) {
         setMessage('This email is already on the waitlist.', 'error');
@@ -421,25 +429,28 @@
         return;
       }
 
-      if (!res.ok) {
-        let errorText = 'Something went wrong. Please try again.';
-        try {
-          const err = await res.json();
-          console.error('Supabase insert error:', err);
-          if (err && ((err.code === '23505') || (err.message && (err.message.toLowerCase().includes('duplicate') || err.message.toLowerCase().includes('unique'))))) {
-            errorText = 'This email is already on the waitlist.';
-          }
-        } catch(e) {
-          console.error('Supabase insert failed with status:', res.status);
-        }
-        setMessage(errorText, 'error');
+      if (res.status === 400 && responseBody.error && responseBody.error.toLowerCase().includes('security')) {
+        setMessage('Please complete the security check.', 'error');
+        trackEvent('turnstile_missing_token');
+        return;
+      }
+
+      if (res.status === 403) {
+        setMessage('Security check failed. Please try again.', 'error');
+        trackEvent('turnstile_failed');
+        return;
+      }
+
+      if (!res.ok || !responseBody.success) {
+        console.error('Join waitlist error:', responseBody);
+        setMessage(responseBody.error || 'Something went wrong. Please try again.', 'error');
         return;
       }
 
       await notifyFormspree(email, code);
       const fallbackPosition = Number.isFinite(Number(count)) ? Number(count) + 1 : BASE_COUNT + 1;
       const latestCount = await loadWaitlistCount(fallbackPosition);
-      trackEvent('waitlist_signup', { method: 'supabase', value: 1 });
+      trackEvent('waitlist_signup', { method: 'edge_function', value: 1 });
       showSuccess(email, code, latestCount || fallbackPosition);
     } catch(e) {
       setMessage('Connection error. Please try again.', 'error');
