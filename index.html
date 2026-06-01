@@ -44,6 +44,9 @@
     .launch-note{font-size:13px;color:rgba(255,255,255,.58);line-height:1.55;margin:10px 0 12px;max-width:460px;font-weight:500}
     .counter{font-size:13px;color:rgba(255,255,255,.28)}
     .counter strong{color:rgba(124,106,245,.8);font-weight:600}
+
+    .turnstile-wrap{margin:4px 0 10px;min-height:0;max-width:460px;display:flex;align-items:center}
+    .turnstile-wrap iframe{max-width:100%}
     .form-message{font-size:13px;margin-top:10px;min-height:18px;color:rgba(255,255,255,.45)}
     .form-message.error{color:#ff6b6b}
     .form-message.info{color:rgba(124,106,245,.9)}
@@ -120,6 +123,10 @@
     gtag('js', new Date());
     gtag('config', 'G-0V4SQ1T6KQ');
   </script>
+
+
+  <!-- Cloudflare Turnstile -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -151,6 +158,9 @@
         <div class="form-row">
           <input class="email-inp" type="email" placeholder="your@email.com" id="hero-email" autocomplete="email"/>
           <button class="submit-btn" onclick="handleJoin()">Join waitlist</button>
+        </div>
+        <div class="turnstile-wrap">
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAADb6f4X0Wgtkk6aC" data-theme="dark" data-size="flexible"></div>
         </div>
         <div class="counter">Join <strong id="count-num">...</strong> people already on the list</div>
         <div class="launch-note">
@@ -378,6 +388,13 @@
       return;
     }
 
+    const turnstileToken = window.turnstile ? turnstile.getResponse() : '';
+    if (!turnstileToken) {
+      setMessage('Please complete the security check.', 'error');
+      trackEvent('turnstile_missing_token');
+      return;
+    }
+
     btn.disabled = true;
     const oldText = btn.textContent;
     btn.textContent = 'Joining...';
@@ -427,6 +444,9 @@
     } catch(e) {
       setMessage('Connection error. Please try again.', 'error');
     } finally {
+      if (window.turnstile) {
+        try { turnstile.reset(); } catch(e) {}
+      }
       btn.disabled = false;
       btn.textContent = oldText;
     }
