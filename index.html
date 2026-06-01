@@ -45,7 +45,7 @@
     .counter{font-size:13px;color:rgba(255,255,255,.28)}
     .counter strong{color:rgba(124,106,245,.8);font-weight:600}
 
-    .turnstile-wrap{margin:10px 0 12px;min-height:65px;max-width:320px;display:flex;align-items:center}
+    .turnstile-wrap{height:0;min-height:0;margin:0;overflow:hidden;opacity:0;pointer-events:none}
     .turnstile-wrap iframe{max-width:100%}
     .form-message{font-size:13px;margin-top:10px;min-height:18px;color:rgba(255,255,255,.45)}
     .form-message.error{color:#ff6b6b}
@@ -160,7 +160,7 @@
           <button class="submit-btn" onclick="handleJoin()">Join waitlist</button>
         </div>
         <div class="turnstile-wrap">
-          <div class="cf-turnstile" data-sitekey="0x4AAAAAADb6f4X0Wgtkk6aC" data-theme="dark" data-size="normal"></div>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAADb6f4X0Wgtkk6aC" data-theme="dark" data-size="normal" data-callback="onTurnstileSuccess" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileExpired"></div>
         </div>
         <div class="counter">Join <strong id="count-num">...</strong> people already on the list</div>
         <div class="launch-note">
@@ -248,6 +248,16 @@
   const WAITLIST_COUNT_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/waitlist-count';
   const JOIN_WAITLIST_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/join-waitlist';
   let count = null;
+
+  let turnstileTokenValue = '';
+
+  function onTurnstileSuccess(token) {
+    turnstileTokenValue = token || '';
+  }
+
+  function onTurnstileExpired() {
+    turnstileTokenValue = '';
+  }
 
   function trackEvent(eventName, params = {}) {
     try {
@@ -389,7 +399,7 @@
       return;
     }
 
-    const turnstileToken = window.turnstile ? turnstile.getResponse() : '';
+    const turnstileToken = (window.turnstile ? turnstile.getResponse() : '') || turnstileTokenValue;
     if (!turnstileToken) {
       setMessage('Please complete the security check.', 'error');
       trackEvent('turnstile_missing_token');
@@ -456,7 +466,7 @@
       setMessage('Connection error. Please try again.', 'error');
     } finally {
       if (window.turnstile) {
-        try { turnstile.reset(); } catch(e) {}
+        try { turnstile.reset(); turnstileTokenValue = ''; } catch(e) {}
       }
       btn.disabled = false;
       btn.textContent = oldText;
