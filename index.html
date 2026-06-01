@@ -45,7 +45,7 @@
     .counter{font-size:13px;color:rgba(255,255,255,.28)}
     .counter strong{color:rgba(124,106,245,.8);font-weight:600}
 
-    .turnstile-wrap{margin:4px 0 10px;min-height:0;max-width:460px;display:flex;align-items:center}
+    .turnstile-wrap{margin:8px 0 10px;min-height:0;max-width:320px;display:flex;align-items:center}
     .turnstile-wrap iframe{max-width:100%}
     .form-message{font-size:13px;margin-top:10px;min-height:18px;color:rgba(255,255,255,.45)}
     .form-message.error{color:#ff6b6b}
@@ -152,7 +152,7 @@
     <div class="hero-left">
       <div class="badge"><div class="badge-dot"></div>Coming soon</div>
       <h1>The future of<br><span>interaction</span></h1>
-      <p class="hero-sub">Join live sessions with strangers. Talk, vibe, vote. Only the most interesting survive.</p>
+      <p class="hero-sub">Join 4 strangers in a live room. After each round, vote someone out. The last 2 players win.</p>
 
       <div id="form-section">
         <div class="form-row">
@@ -160,7 +160,7 @@
           <button class="submit-btn" onclick="handleJoin()">Join waitlist</button>
         </div>
         <div class="turnstile-wrap">
-          <div class="cf-turnstile" data-sitekey="0x4AAAAAADb6f4X0Wgtkk6aC" data-theme="dark" data-size="flexible"></div>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAADb6f4X0Wgtkk6aC" data-theme="dark" data-size="flexible" data-appearance="interaction-only"></div>
         </div>
         <div class="counter">Join <strong id="count-num">...</strong> people already on the list</div>
         <div class="launch-note">
