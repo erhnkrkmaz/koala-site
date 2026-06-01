@@ -111,6 +111,15 @@
       .social-follow{align-items:flex-start;flex-direction:column;gap:8px}
     }
   </style>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0V4SQ1T6KQ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0V4SQ1T6KQ');
+  </script>
 </head>
 <body>
 
@@ -229,6 +238,16 @@
   const WAITLIST_COUNT_URL = 'https://udlpcozhzhaksyfkqbgp.supabase.co/functions/v1/waitlist-count';
   let count = null;
 
+  function trackEvent(eventName, params = {}) {
+    try {
+      if (typeof gtag === 'function') {
+        gtag('event', eventName, params);
+      }
+    } catch (e) {
+      console.warn('Analytics event failed:', eventName, e);
+    }
+  }
+
   function setMessage(text, type = '') {
     const msg = document.getElementById('form-message');
     if (!msg) return;
@@ -288,6 +307,7 @@
 
   // Keep the initial HTML as "..." until the live count arrives.
   loadWaitlistCount();
+  trackEvent('waitlist_page_view', { page: 'landing' });
 
   // iMessage / Instagram / Facebook in-app browser detection
   function isInAppBrowser() {
@@ -353,6 +373,7 @@
     if (!isValidEmail(email)) {
       inp.style.borderColor = 'rgba(220,50,50,.5)';
       setMessage('Please enter a valid email address.', 'error');
+      trackEvent('waitlist_invalid_email');
       setTimeout(() => inp.style.borderColor = 'rgba(255,255,255,.14)', 2000);
       return;
     }
@@ -379,6 +400,7 @@
 
       if (res.status === 409) {
         setMessage('This email is already on the waitlist.', 'error');
+        trackEvent('waitlist_duplicate_email');
         return;
       }
 
@@ -400,6 +422,7 @@
       await notifyFormspree(email, code);
       const fallbackPosition = Number.isFinite(Number(count)) ? Number(count) + 1 : BASE_COUNT + 1;
       const latestCount = await loadWaitlistCount(fallbackPosition);
+      trackEvent('waitlist_signup', { method: 'supabase', value: 1 });
       showSuccess(email, code, latestCount || fallbackPosition);
     } catch(e) {
       setMessage('Connection error. Please try again.', 'error');
@@ -410,6 +433,7 @@
   }
 
   function copyLink() {
+    trackEvent('referral_copy_click');
     const btn = document.getElementById('copy-btn');
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(refLink).then(() => showCopied(btn)).catch(() => fallbackCopy(btn));
@@ -442,16 +466,19 @@
   }
 
   function shareTwitter() {
+    trackEvent('referral_share_x');
     const text = encodeURIComponent('Join me on Koala — talk, vibe, vote with strangers. Only the most interesting survive. Get early access: ' + refLink);
     window.open('https://twitter.com/intent/tweet?text=' + text, '_blank');
   }
 
   function shareWhatsApp() {
+    trackEvent('referral_share_whatsapp');
     const text = encodeURIComponent('Join me on Koala — talk, vibe, vote. Get early access: ' + refLink);
     window.open('https://wa.me/?text=' + text, '_blank');
   }
 
   function shareIMessage() {
+    trackEvent('referral_share_imessage');
     const text = encodeURIComponent('Join me on Koala — talk, vibe, vote with strangers. Get early access: ' + refLink);
     window.location.href = 'sms:&body=' + text;
   }
