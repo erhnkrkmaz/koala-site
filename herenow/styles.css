@@ -1,0 +1,169 @@
+:root {
+  color-scheme: light;
+  --bg: #fafafa;
+  --paper: #ffffff;
+  --ink: #101014;
+  --muted: #5f5f6b;
+  --line: rgba(16, 16, 20, 0.1);
+  --accent: #6230cc;
+  --accent-soft: #f0ebff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  line-height: 1.58;
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  width: min(860px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 44px 0 72px;
+}
+
+.shell {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(16, 16, 20, 0.06);
+  overflow: hidden;
+}
+
+header {
+  padding: 38px 42px 30px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin-bottom: 18px;
+}
+
+h1 {
+  font-size: clamp(32px, 5vw, 46px);
+  line-height: 1.05;
+  letter-spacing: 0;
+  margin: 0 0 14px;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: 17px;
+  margin: 0;
+  max-width: 680px;
+}
+
+main {
+  padding: 34px 42px 44px;
+}
+
+h2 {
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  margin: 34px 0 10px;
+}
+
+h2:first-child {
+  margin-top: 0;
+}
+
+p,
+li {
+  font-size: 16px;
+}
+
+p {
+  margin: 0 0 14px;
+}
+
+ul {
+  margin: 0 0 18px;
+  padding-left: 22px;
+}
+
+a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.notice {
+  background: var(--accent-soft);
+  border: 1px solid rgba(98, 48, 204, 0.16);
+  border-radius: 14px;
+  color: #2f1b5d;
+  margin: 22px 0 6px;
+  padding: 16px 18px;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 14px;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.nav a {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+footer {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 0 42px 36px;
+}
+
+@media (max-width: 640px) {
+  .page {
+    width: min(100% - 20px, 860px);
+    padding: 18px 0 42px;
+  }
+
+  .shell {
+    border-radius: 16px;
+  }
+
+  header,
+  main {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  header {
+    padding-top: 28px;
+  }
+
+  footer {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+}
