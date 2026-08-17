@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Koala Admin</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="./admin.css">
+  </head>
+  <body>
+    <div id="login-screen" class="login-screen">
+      <form id="login-form" class="login-card">
+        <div class="brand">Koala Tech AI</div>
+        <h1>Admin</h1>
+        <label>
+          Email
+          <input type="email" id="login-email" autocomplete="username" required>
+        </label>
+        <label>
+          Password
+          <input type="password" id="login-password" autocomplete="current-password" required>
+        </label>
+        <button type="submit" id="login-button">Sign in</button>
+        <p id="login-error" class="error-text" hidden></p>
+      </form>
+    </div>
+
+    <div id="app-screen" class="app-screen" hidden>
+      <header class="app-header">
+        <div class="brand">Koala Admin</div>
+        <button id="logout-button" class="ghost-button">Sign out</button>
+      </header>
+
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-tab="pending">Under Review</button>
+        <button class="tab" data-tab="safety">Nude Hold</button>
+        <button class="tab" data-tab="reports">Report Hold</button>
+        <button class="tab" data-tab="photos">Profile Pic Update</button>
+      </nav>
+
+      <main class="panel">
+        <div class="panel-toolbar">
+          <span id="panel-count" class="count-badge">0</span>
+          <button id="refresh-button" class="ghost-button">Refresh</button>
+        </div>
+        <div id="panel-body" class="panel-body">
+          <p class="empty-state">Loading…</p>
+        </div>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./admin.js"></script>
+  </body>
+</html>
