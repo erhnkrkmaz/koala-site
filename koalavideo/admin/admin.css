@@ -121,6 +121,21 @@ a {
   margin: 14px 0 0;
 }
 
+.awaiting-text {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 22px;
+}
+
+.awaiting-text strong {
+  color: var(--ink);
+}
+
+#awaiting-email-card .ghost-button {
+  width: 100%;
+}
+
 /* App shell: sidebar + panel */
 
 .app-screen {
@@ -143,6 +158,25 @@ a {
 
 .sidebar .brand {
   padding: 4px 10px 20px;
+}
+
+.search-form {
+  padding: 0 2px 14px;
+}
+
+.search-form input {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 9px 12px;
+  width: 100%;
+}
+
+.search-form input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .side-nav {
@@ -480,6 +514,58 @@ a {
   cursor: default;
 }
 
+/* Activity log */
+
+.activity-row {
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.activity-main {
+  font-size: 13px;
+}
+
+.activity-action {
+  font-weight: 700;
+}
+
+.activity-meta {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.activity-decision {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.activity-decision.positive {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.activity-decision.negative {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
 @media (max-width: 860px) {
   .app-screen {
     flex-direction: column;
@@ -488,8 +574,8 @@ a {
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--line);
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     height: auto;
     padding: 12px 16px;
     position: static;
@@ -497,21 +583,26 @@ a {
   }
 
   .sidebar .brand {
-    padding: 0 12px 0 0;
+    padding: 0 0 10px;
+  }
+
+  .search-form {
+    padding: 0 0 10px;
   }
 
   .side-nav {
     flex-direction: row;
-    overflow-x: auto;
+    flex-wrap: wrap;
   }
 
   .side-tab {
+    flex: 0 0 auto;
     white-space: nowrap;
   }
 
   .sidebar-signout {
-    margin-top: 0;
-    margin-left: 8px;
+    align-self: flex-start;
+    margin-top: 10px;
     width: auto;
   }
 

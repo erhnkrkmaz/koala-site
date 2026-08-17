@@ -23,11 +23,26 @@
         <button type="submit" id="login-button">Sign in</button>
         <p id="login-error" class="error-text" hidden></p>
       </form>
+
+      <div id="awaiting-email-card" class="login-card" hidden>
+        <div class="brand">Koala Tech AI</div>
+        <h1>Check your email</h1>
+        <p class="awaiting-text">
+          Password confirmed. We sent a sign-in link to <strong id="awaiting-email-address"></strong> —
+          click it to finish signing in. This second step confirms you also have access to that inbox.
+        </p>
+        <button type="button" id="back-to-login-button" class="ghost-button">Use a different account</button>
+      </div>
     </div>
 
     <div id="app-screen" class="app-screen" hidden>
       <aside class="sidebar">
         <div class="brand">Koala Admin</div>
+
+        <form id="search-form" class="search-form">
+          <input type="search" id="search-input" placeholder="Find a user…" autocomplete="off">
+        </form>
+
         <nav class="side-nav" id="tabs">
           <button class="side-tab active" data-tab="pending">
             <span class="side-tab-label">Under Review</span>
@@ -44,6 +59,9 @@
           <button class="side-tab" data-tab="photos">
             <span class="side-tab-label">Profile Pic Update</span>
             <span class="side-tab-count" id="count-photos">0</span>
+          </button>
+          <button class="side-tab" data-tab="activity">
+            <span class="side-tab-label">Activity Log</span>
           </button>
         </nav>
         <button id="logout-button" class="ghost-button sidebar-signout">Sign out</button>

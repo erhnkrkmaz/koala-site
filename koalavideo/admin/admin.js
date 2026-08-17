@@ -4,6 +4,8 @@ const SUPABASE_ANON_KEY =
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const PAGE_SIZE = 50;
+
 function formatDate(value) {
   if (!value) return "—";
   const d = new Date(value);
@@ -273,6 +275,46 @@ function renderPhotoUpdateCard(row) {
   return card;
 }
 
+function renderSearchResultCard(row) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.appendChild(
+    buildIdentityHeader(row, {
+      extraMeta: [`status: ${row.status}`, `updated ${formatDate(row.updated_at)}`],
+    })
+  );
+  return card;
+}
+
+const ACTIVITY_LABELS = {
+  resolve_profile: "Profile decision",
+  resolve_safety_incident: "Nude Hold decision",
+  resolve_report_hold: "Report Hold decision",
+  resolve_pending_photo: "Profile Pic Update decision",
+};
+
+const POSITIVE_DECISIONS = new Set(["approve", "cleared", "reopen"]);
+
+function renderActivityRow(row) {
+  const el = document.createElement("div");
+  el.className = "activity-row";
+
+  const main = document.createElement("div");
+  main.className = "activity-main";
+  const actionLabel = ACTIVITY_LABELS[row.action] || row.action;
+  main.innerHTML =
+    `<div class="activity-action">${escapeHtml(actionLabel)}</div>` +
+    `<div class="activity-meta">${escapeHtml(row.target_table)} · ${row.target_id.slice(0, 8)}… · ${formatDate(row.created_at)}</div>`;
+  el.appendChild(main);
+
+  const decision = document.createElement("span");
+  decision.className = `activity-decision ${POSITIVE_DECISIONS.has(row.decision) ? "positive" : "negative"}`;
+  decision.textContent = row.decision;
+  el.appendChild(decision);
+
+  return el;
+}
+
 const TABS = {
   pending: {
     label: "Under Review",
@@ -322,9 +364,20 @@ const TABS = {
       { label: "Reject", kind: "negative", decision: "reject" },
     ],
   },
+  activity: {
+    label: "Activity Log",
+    listFn: "admin_list_audit_log",
+    render: renderActivityRow,
+  },
 };
 
+const QUEUE_TABS = ["pending", "safety", "reports", "photos"];
+
 let activeTab = "pending";
+let currentOffset = 0;
+let searchMode = false;
+
+const ADMIN_URL = "https://www.heykoala.app/koalavideo/admin/";
 
 const loginScreen = document.getElementById("login-screen");
 const appScreen = document.getElementById("app-screen");
@@ -336,6 +389,11 @@ const tabsEl = document.getElementById("tabs");
 const panelBody = document.getElementById("panel-body");
 const panelTitle = document.getElementById("panel-title");
 const refreshButton = document.getElementById("refresh-button");
+const searchForm = document.getElementById("search-form");
+const searchInput = document.getElementById("search-input");
+const awaitingEmailCard = document.getElementById("awaiting-email-card");
+const awaitingEmailAddress = document.getElementById("awaiting-email-address");
+const backToLoginButton = document.getElementById("back-to-login-button");
 
 function showApp() {
   loginScreen.hidden = true;
@@ -347,11 +405,26 @@ function showApp() {
 function showLogin(message) {
   appScreen.hidden = true;
   loginScreen.hidden = false;
+  awaitingEmailCard.hidden = true;
+  loginForm.hidden = false;
   if (message) {
     loginError.textContent = message;
     loginError.hidden = false;
   }
 }
+
+function showAwaitingEmail(email) {
+  loginForm.hidden = true;
+  awaitingEmailCard.hidden = false;
+  awaitingEmailAddress.textContent = email;
+}
+
+backToLoginButton.addEventListener("click", () => {
+  loginForm.reset();
+  loginError.hidden = true;
+  awaitingEmailCard.hidden = true;
+  loginForm.hidden = false;
+});
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -362,18 +435,36 @@ loginForm.addEventListener("submit", async (event) => {
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
 
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  // Step 1: password proves "something you know". This alone must never grant access, so the
+  // session it creates is immediately discarded -- only a click on the emailed link (step 2,
+  // "something you have": access to the inbox) establishes the session the app actually uses.
+  const { error: passwordError } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-  loginButton.disabled = false;
-  loginButton.textContent = "Sign in";
-
-  if (error) {
-    loginError.textContent = error.message;
+  if (passwordError) {
+    loginButton.disabled = false;
+    loginButton.textContent = "Sign in";
+    loginError.textContent = passwordError.message;
     loginError.hidden = false;
     return;
   }
 
-  showApp();
+  await supabaseClient.auth.signOut();
+
+  const { error: otpError } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false, emailRedirectTo: ADMIN_URL },
+  });
+
+  loginButton.disabled = false;
+  loginButton.textContent = "Sign in";
+
+  if (otpError) {
+    loginError.textContent = `Password correct, but could not send the confirmation email: ${otpError.message}`;
+    loginError.hidden = false;
+    return;
+  }
+
+  showAwaitingEmail(email);
 });
 
 logoutButton.addEventListener("click", async () => {
@@ -384,6 +475,8 @@ logoutButton.addEventListener("click", async () => {
 tabsEl.addEventListener("click", (event) => {
   const button = event.target.closest(".side-tab");
   if (!button) return;
+  searchMode = false;
+  searchInput.value = "";
   activeTab = button.dataset.tab;
   for (const tab of tabsEl.querySelectorAll(".side-tab")) {
     tab.classList.toggle("active", tab === button);
@@ -392,12 +485,49 @@ tabsEl.addEventListener("click", (event) => {
 });
 
 refreshButton.addEventListener("click", () => {
-  refreshAllCounts();
-  loadActiveTab();
+  if (searchMode) {
+    runSearch(searchInput.value);
+  } else {
+    refreshAllCounts();
+    loadActiveTab();
+  }
 });
 
+searchForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const query = searchInput.value.trim();
+  if (!query) return;
+  searchMode = true;
+  for (const tab of tabsEl.querySelectorAll(".side-tab")) {
+    tab.classList.remove("active");
+  }
+  runSearch(query);
+});
+
+async function runSearch(query) {
+  panelTitle.textContent = `Search results for "${query}"`;
+  panelBody.innerHTML = '<p class="empty-state">Searching…</p>';
+
+  const { data, error } = await supabaseClient.rpc("admin_search_profiles", { p_query: query, p_limit: 30 });
+
+  if (error) {
+    panelBody.innerHTML = `<p class="empty-state">Could not search: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    panelBody.innerHTML = '<p class="empty-state">No matching users.</p>';
+    return;
+  }
+
+  panelBody.innerHTML = "";
+  for (const row of data) {
+    panelBody.appendChild(renderSearchResultCard(row));
+  }
+}
+
 async function refreshAllCounts() {
-  const entries = Object.entries(TABS);
+  const entries = QUEUE_TABS.map((key) => [key, TABS[key]]);
   const results = await Promise.all(entries.map(([, config]) => supabaseClient.rpc(config.listFn)));
   results.forEach(({ data, error }, i) => {
     const [, config] = entries[i];
@@ -420,6 +550,12 @@ function buildActionsRow(row, config) {
 }
 
 async function runAction(row, config, action, button) {
+  if (action.kind === "negative") {
+    const name = row.display_name || "this account";
+    const confirmed = confirm(`${action.label} ${name}? This cannot be undone.`);
+    if (!confirmed) return;
+  }
+
   const card = button.closest(".card");
   const buttons = card.querySelectorAll(".action-button");
   for (const b of buttons) b.disabled = true;
@@ -443,12 +579,53 @@ async function runAction(row, config, action, button) {
   }
 }
 
+function appendRows(config, data) {
+  for (const row of data) {
+    const item = config.render(row);
+    if (config.actions) item.appendChild(buildActionsRow(row, config));
+    panelBody.appendChild(item);
+  }
+}
+
+function showLoadMoreIfNeeded(config, data) {
+  const existing = panelBody.querySelector(".load-more-row");
+  if (existing) existing.remove();
+
+  if (data.length < PAGE_SIZE) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "load-more-row";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ghost-button";
+  button.textContent = "Load more";
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    button.textContent = "Loading…";
+    currentOffset += PAGE_SIZE;
+    const { data: moreData, error } = await supabaseClient.rpc(config.listFn, {
+      p_limit: PAGE_SIZE,
+      p_offset: currentOffset,
+    });
+    wrap.remove();
+    if (error) {
+      alert(`Could not load more: ${error.message}`);
+      return;
+    }
+    appendRows(config, moreData);
+    showLoadMoreIfNeeded(config, moreData);
+  });
+  wrap.appendChild(button);
+  panelBody.appendChild(wrap);
+}
+
 async function loadActiveTab() {
   const config = TABS[activeTab];
+  currentOffset = 0;
   panelTitle.textContent = config.label;
   panelBody.innerHTML = '<p class="empty-state">Loading…</p>';
 
-  const { data, error } = await supabaseClient.rpc(config.listFn);
+  const { data, error } = await supabaseClient.rpc(config.listFn, { p_limit: PAGE_SIZE, p_offset: 0 });
 
   if (error) {
     panelBody.innerHTML = `<p class="empty-state">Could not load: ${escapeHtml(error.message)}</p>`;
@@ -456,7 +633,7 @@ async function loadActiveTab() {
   }
 
   const countEl = document.getElementById(config.countEl);
-  if (countEl) countEl.textContent = String(data.length);
+  if (countEl) countEl.textContent = String(data.length) + (data.length === PAGE_SIZE ? "+" : "");
 
   if (data.length === 0) {
     panelBody.innerHTML = '<p class="empty-state">Nothing here right now.</p>';
@@ -464,11 +641,8 @@ async function loadActiveTab() {
   }
 
   panelBody.innerHTML = "";
-  for (const row of data) {
-    const card = config.render(row);
-    card.appendChild(buildActionsRow(row, config));
-    panelBody.appendChild(card);
-  }
+  appendRows(config, data);
+  showLoadMoreIfNeeded(config, data);
 }
 
 (async function init() {
