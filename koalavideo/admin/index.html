@@ -26,21 +26,32 @@
     </div>
 
     <div id="app-screen" class="app-screen" hidden>
-      <header class="app-header">
+      <aside class="sidebar">
         <div class="brand">Koala Admin</div>
-        <button id="logout-button" class="ghost-button">Sign out</button>
-      </header>
-
-      <nav class="tabs" id="tabs">
-        <button class="tab active" data-tab="pending">Under Review</button>
-        <button class="tab" data-tab="safety">Nude Hold</button>
-        <button class="tab" data-tab="reports">Report Hold</button>
-        <button class="tab" data-tab="photos">Profile Pic Update</button>
-      </nav>
+        <nav class="side-nav" id="tabs">
+          <button class="side-tab active" data-tab="pending">
+            <span class="side-tab-label">Under Review</span>
+            <span class="side-tab-count" id="count-pending">0</span>
+          </button>
+          <button class="side-tab" data-tab="safety">
+            <span class="side-tab-label">Nude Hold</span>
+            <span class="side-tab-count" id="count-safety">0</span>
+          </button>
+          <button class="side-tab" data-tab="reports">
+            <span class="side-tab-label">Report Hold</span>
+            <span class="side-tab-count" id="count-reports">0</span>
+          </button>
+          <button class="side-tab" data-tab="photos">
+            <span class="side-tab-label">Profile Pic Update</span>
+            <span class="side-tab-count" id="count-photos">0</span>
+          </button>
+        </nav>
+        <button id="logout-button" class="ghost-button sidebar-signout">Sign out</button>
+      </aside>
 
       <main class="panel">
         <div class="panel-toolbar">
-          <span id="panel-count" class="count-badge">0</span>
+          <h1 id="panel-title">Under Review</h1>
           <button id="refresh-button" class="ghost-button">Refresh</button>
         </div>
         <div id="panel-body" class="panel-body">
