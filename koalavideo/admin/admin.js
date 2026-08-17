@@ -2,7 +2,7 @@ const SUPABASE_URL = "https://ndgdzwprwphklqwyxque.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kZ2R6d3Byd3Boa2xxd3l4cXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMzMzMDcsImV4cCI6MjEwMTgwOTMwN30.6d9lBoh-pQ4lqtYO07LKmuMHLa3yq0q3x1DhYjOV2Tw";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function formatDate(value) {
   if (!value) return "—";
@@ -122,7 +122,7 @@ loginForm.addEventListener("submit", async (event) => {
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
   loginButton.disabled = false;
   loginButton.textContent = "Sign in";
@@ -137,7 +137,7 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 logoutButton.addEventListener("click", async () => {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   showLogin();
 });
 
@@ -157,7 +157,7 @@ async function loadActiveTab() {
   const config = TABS[activeTab];
   panelBody.innerHTML = '<p class="empty-state">Loading…</p>';
 
-  const { data, error } = await supabase.rpc(config.listFn);
+  const { data, error } = await supabaseClient.rpc(config.listFn);
 
   if (error) {
     panelBody.innerHTML = `<p class="empty-state">Could not load: ${escapeHtml(error.message)}</p>`;
@@ -209,7 +209,7 @@ async function runAction(row, config, action, button, rowEl) {
   button.textContent = "Working…";
 
   const params = { [config.idParam]: row.id, p_decision: action.decision };
-  const { error } = await supabase.rpc(config.resolveFn, params);
+  const { error } = await supabaseClient.rpc(config.resolveFn, params);
 
   if (error) {
     alert(`Failed: ${error.message}`);
@@ -233,7 +233,7 @@ function escapeHtml(str) {
 }
 
 (async function init() {
-  const { data } = await supabase.auth.getSession();
+  const { data } = await supabaseClient.auth.getSession();
   if (data.session) {
     showApp();
   } else {
